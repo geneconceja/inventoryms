@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\build\inventoryms.props" />
-</Project>

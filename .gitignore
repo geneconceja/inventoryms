@@ -1,0 +1,27 @@
+## Build and output directories
+bin/
+obj/
+out/
+[Bb]in/
+[Oo]bj/
+
+## Visual Studio / VS Code / JetBrains Rider
+.vs/
+.vscode/
+.idea/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.sln.docstates
+
+## User-specific settings & local secrets
+appsettings*.local.json
+secrets.json
+
+## Logs & Temp
+*.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
