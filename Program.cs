@@ -8,7 +8,11 @@ using Npgsql;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+// Require authentication globally — AccountController uses [AllowAnonymous] to opt out
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add(new Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter());
+});
 
 // Configure Npgsql data source with PostgreSQL enum mappings
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")

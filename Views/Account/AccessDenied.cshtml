@@ -1,0 +1,46 @@
+@{
+    ViewData["Title"] = "Access Denied — InventoryMS";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body>
+<div class="auth-page">
+    <div class="auth-card fade-in text-center" style="max-width:460px;">
+        <div class="auth-card-header" style="background: linear-gradient(135deg, #dc2626, #991b1b);">
+            <div class="auth-logo" style="background: rgba(255,255,255,0.15);">
+                <i class="fas fa-shield-halved" style="color:#fff;"></i>
+            </div>
+            <h1 class="auth-title">Access Denied</h1>
+            <p class="auth-subtitle">You don't have permission to view this page.</p>
+        </div>
+        <div class="auth-card-body">
+            <p style="font-size:0.875rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+                Your current role does not allow access to this resource.
+                Please contact your system administrator if you believe this is an error.
+            </p>
+            <div class="d-flex gap-2 justify-content-center">
+                <a asp-controller="Home" asp-action="Index" class="btn btn-primary" style="border-radius: var(--radius-sm);">
+                    <i class="fas fa-house me-2"></i>Go to Dashboard
+                </a>
+                <form asp-controller="Account" asp-action="Logout" method="post" style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-secondary" style="border-radius: var(--radius-sm);">
+                        <i class="fas fa-right-from-bracket me-2"></i>Logout
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+</body>
+</html>

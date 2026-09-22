@@ -1,0 +1,107 @@
+@model IEnumerable<inventoryms.Models.ViewModels.Users.UserListItemViewModel>
+@{
+    ViewData["Title"] = "User Management";
+    ViewData["PageTitle"] = "User Management";
+}
+
+<div class="page-header fade-in">
+    <div class="page-header-left">
+        <h1>User Management</h1>
+        <p>Manage system accounts and role assignments.</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary" id="btn-create-user">
+        <i class="fas fa-plus me-2"></i>New User
+    </a>
+</div>
+
+<!-- Search -->
+<form method="get" class="mb-4 d-flex gap-2" style="max-width:400px;">
+    <input type="text"
+           name="search"
+           value="@ViewBag.Search"
+           class="form-control search-input"
+           id="user-search"
+           placeholder="Search by name or email…" />
+    <button type="submit" class="btn btn-outline-primary" id="btn-search-users">
+        <i class="fas fa-search"></i>
+    </button>
+</form>
+
+<div class="card fade-in">
+    <div class="card-header">
+        <h2 class="card-header-title">All Users</h2>
+        <span class="text-muted" style="font-size:0.8rem;">@Model.Count() total</span>
+    </div>
+    <div class="table-wrapper">
+        <table class="table" id="users-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th style="width:120px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="fas fa-users-slash fa-2x mb-2 d-block opacity-25"></i>
+                            No users found.
+                        </td>
+                    </tr>
+                }
+                @foreach (var user in Model)
+                {
+                    var roleCls = user.Role switch {
+                        "Admin"   => "admin",
+                        "Manager" => "manager",
+                        _         => "staff"
+                    };
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div style="width:32px;height:32px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.72rem;font-weight:700;flex-shrink:0;">
+                                    @(string.Concat(user.FullName.Split(' ').Take(2).Select(w => char.ToUpper(w[0]))))
+                                </div>
+                                <span style="font-weight:500;">@user.FullName</span>
+                            </div>
+                        </td>
+                        <td class="text-muted">@user.Email</td>
+                        <td><span class="badge-role @roleCls">@user.Role</span></td>
+                        <td>
+                            <span class="badge-status @(user.IsActive ? "active" : "inactive")">
+                                @(user.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td class="text-muted" style="font-size:0.8rem;">
+                            @user.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a asp-action="Edit" asp-route-id="@user.Id"
+                                   class="btn-icon"
+                                   id="btn-edit-@user.Id"
+                                   title="Edit user">
+                                    <i class="fas fa-pen-to-square fa-sm"></i>
+                                </a>
+                                <form asp-action="ToggleStatus" asp-route-id="@user.Id" method="post" style="display:inline;">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit"
+                                            class="btn-icon"
+                                            id="btn-toggle-@user.Id"
+                                            title="@(user.IsActive ? "Deactivate" : "Activate")">
+                                        <i class="fas @(user.IsActive ? "fa-ban" : "fa-check") fa-sm"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

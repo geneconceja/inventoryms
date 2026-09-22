@@ -1,0 +1,72 @@
+@model inventoryms.Models.ViewModels.Users.CreateUserViewModel
+@{
+    ViewData["Title"] = "Create User";
+    ViewData["PageTitle"] = "Create User";
+}
+
+<div class="page-header fade-in">
+    <div class="page-header-left">
+        <h1>Create User</h1>
+        <p>Add a new system account and assign a role.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary" style="border-radius:var(--radius-sm);">
+        <i class="fas fa-arrow-left me-2"></i>Back to Users
+    </a>
+</div>
+
+<div class="row fade-in">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-header-title">Account Details</h2>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post" id="create-user-form">
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="All" class="alert alert-danger mb-3" style="display:@(ViewData.ModelState.IsValid ? "none" : "block");"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="FullName" class="form-label">Full Name</label>
+                        <input asp-for="FullName" id="full-name-input" class="form-control" placeholder="e.g. Jane Smith" />
+                        <span asp-validation-for="FullName" class="text-danger" style="font-size:0.78rem;"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label">Email Address</label>
+                        <input asp-for="Email" id="email-input" class="form-control" type="email" placeholder="user@example.com" />
+                        <span asp-validation-for="Email" class="text-danger" style="font-size:0.78rem;"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label">Password</label>
+                        <input asp-for="Password" id="password-input" class="form-control" type="password" placeholder="Min. 6 characters" />
+                        <span asp-validation-for="Password" class="text-danger" style="font-size:0.78rem;"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Role" class="form-label">Role</label>
+                        <select asp-for="Role" id="role-select" class="form-select"
+                                asp-items="@(new SelectList(Model.AvailableRoles))">
+                        </select>
+                        <span asp-validation-for="Role" class="text-danger" style="font-size:0.78rem;"></span>
+                        <div class="mt-2 p-2 rounded" style="background:var(--surface-alt); font-size:0.78rem; color:var(--text-muted);">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Admin</strong>: full access &nbsp;|&nbsp;
+                            <strong>Manager</strong>: catalog &amp; orders &nbsp;|&nbsp;
+                            <strong>Staff</strong>: stock operations only
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-submit-create" class="btn btn-primary">
+                        <i class="fas fa-user-plus me-2"></i>Create User
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
