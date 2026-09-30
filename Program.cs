@@ -1,6 +1,7 @@
 using inventoryms.Data;
 using inventoryms.Models;
 using inventoryms.Models.Enums;
+using inventoryms.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -37,7 +38,12 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
     options.User.RequireUniqueEmail = true;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
-.AddDefaultTokenProviders();
+.AddDefaultTokenProviders()
+.AddClaimsPrincipalFactory<CustomUserClaimsPrincipalFactory>();
+
+// Multi-tenancy services
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ITenantService, TenantService>();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {

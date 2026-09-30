@@ -1,5 +1,6 @@
 using inventoryms.Models;
 using inventoryms.Models.Enums;
+using inventoryms.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -8,11 +9,21 @@ namespace inventoryms.Data;
 
 public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    private readonly ITenantService? _tenantService;
+
+    public ApplicationDbContext(
+        DbContextOptions<ApplicationDbContext> options,
+        ITenantService? tenantService = null)
         : base(options)
     {
+        _tenantService = tenantService;
     }
 
+    // Multi-tenancy tables
+    public DbSet<Tenant> Tenants => Set<Tenant>();
+    public DbSet<UserTenant> UserTenants => Set<UserTenant>();
+
+    // Business entities
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
@@ -21,6 +32,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<StockTransaction> StockTransactions => Set<StockTransaction>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<PurchaseOrderItem> PurchaseOrderItems => Set<PurchaseOrderItem>();
+
+    /// <summary>
+    /// Helper property to read the current tenant ID from the injected service.
+    /// Returns null during migrations, seeding, or when no user is authenticated.
+    /// </summary>
+    private Guid? CurrentTenantId => _tenantService?.CurrentTenantId;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -78,37 +95,92 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         modelBuilder.Entity<IdentityRoleClaim<Guid>>().ToTable("role_claims");
         modelBuilder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens");
 
-        // ---------- Categories ----------
+        // ---------- Tenants ----------
+        modelBuilder.Entity<Tenant>(entity =>
+        {
+            entity.ToTable("tenants");
+            entity.Property(t => t.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(t => t.Name).HasColumnName("name").HasMaxLength(150).IsRequired();
+            entity.Property(t => t.Slug).HasColumnName("slug").HasMaxLength(50).IsRequired();
+            entity.HasIndex(t => t.Slug).IsUnique();
+            entity.Property(t => t.IsActive).HasColumnName("is_active").HasDefaultValue(true);
+            entity.Property(t => t.CreatedAt).HasColumnName("created_at").HasColumnType("timestamptz").HasDefaultValueSql("now()");
+        });
+
+        // ---------- User ↔ Tenant (Many-to-Many) ----------
+        modelBuilder.Entity<UserTenant>(entity =>
+        {
+            entity.ToTable("user_tenants");
+            entity.HasKey(ut => new { ut.UserId, ut.TenantId });
+            entity.Property(ut => ut.UserId).HasColumnName("user_id");
+            entity.Property(ut => ut.TenantId).HasColumnName("tenant_id");
+            entity.Property(ut => ut.IsDefault).HasColumnName("is_default").HasDefaultValue(false);
+            entity.Property(ut => ut.JoinedAt).HasColumnName("joined_at").HasColumnType("timestamptz").HasDefaultValueSql("now()");
+
+            entity.HasOne(ut => ut.User)
+                .WithMany(u => u.UserTenants)
+                .HasForeignKey(ut => ut.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(ut => ut.Tenant)
+                .WithMany(t => t.UserTenants)
+                .HasForeignKey(ut => ut.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ---------- Categories (Tenant-Scoped) ----------
         modelBuilder.Entity<Category>(entity =>
         {
             entity.ToTable("categories");
             entity.Property(c => c.Id).HasColumnName("id").UseIdentityByDefaultColumn();
+            entity.Property(c => c.TenantId).HasColumnName("tenant_id").IsRequired();
             entity.Property(c => c.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
             entity.Property(c => c.Description).HasColumnName("description").HasMaxLength(500);
+
+            // Composite unique: name is unique within each tenant
+            entity.HasIndex(c => new { c.TenantId, c.Name }).IsUnique().HasDatabaseName("idx_categories_tenant_name");
+
+            entity.HasOne(c => c.Tenant).WithMany().HasForeignKey(c => c.TenantId).OnDelete(DeleteBehavior.Cascade);
+
+            // Global query filter: automatically scope all queries to the current tenant
+            entity.HasQueryFilter(c => CurrentTenantId == null || c.TenantId == CurrentTenantId);
         });
 
-        // ---------- Suppliers ----------
+        // ---------- Suppliers (Tenant-Scoped) ----------
         modelBuilder.Entity<Supplier>(entity =>
         {
             entity.ToTable("suppliers");
             entity.Property(s => s.Id).HasColumnName("id").UseIdentityByDefaultColumn();
+            entity.Property(s => s.TenantId).HasColumnName("tenant_id").IsRequired();
             entity.Property(s => s.Name).HasColumnName("name").HasMaxLength(150).IsRequired();
             entity.Property(s => s.ContactName).HasColumnName("contact_name").HasMaxLength(100);
             entity.Property(s => s.Email).HasColumnName("email").HasMaxLength(100);
             entity.Property(s => s.Phone).HasColumnName("phone").HasMaxLength(30);
             entity.Property(s => s.Address).HasColumnName("address").HasMaxLength(250);
+
+            entity.HasOne(s => s.Tenant).WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasQueryFilter(s => CurrentTenantId == null || s.TenantId == CurrentTenantId);
         });
 
-        // ---------- Warehouses ----------
+        // ---------- Warehouses (Tenant-Scoped) ----------
         modelBuilder.Entity<Warehouse>(entity =>
         {
             entity.ToTable("warehouses");
             entity.Property(w => w.Id).HasColumnName("id").UseIdentityByDefaultColumn();
+            entity.Property(w => w.TenantId).HasColumnName("tenant_id").IsRequired();
             entity.Property(w => w.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
             entity.Property(w => w.Location).HasColumnName("location").HasMaxLength(250);
+
+            // Composite unique: name is unique within each tenant
+            entity.HasIndex(w => new { w.TenantId, w.Name }).IsUnique().HasDatabaseName("idx_warehouses_tenant_name");
+
+            entity.HasOne(w => w.Tenant).WithMany().HasForeignKey(w => w.TenantId).OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasQueryFilter(w => CurrentTenantId == null || w.TenantId == CurrentTenantId);
         });
 
-        // ---------- Products ----------
+        // ---------- Products (Tenant-Scoped) ----------
         modelBuilder.Entity<Product>(entity =>
         {
             entity.ToTable("products", t =>
@@ -118,8 +190,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             });
 
             entity.Property(p => p.Id).HasColumnName("id").UseIdentityByDefaultColumn();
+            entity.Property(p => p.TenantId).HasColumnName("tenant_id").IsRequired();
             entity.Property(p => p.Sku).HasColumnName("sku").HasMaxLength(40).IsRequired();
-            entity.HasIndex(p => p.Sku).IsUnique();
+
+            // Composite unique: SKU is unique within each tenant (not globally)
+            entity.HasIndex(p => new { p.TenantId, p.Sku }).IsUnique().HasDatabaseName("idx_products_tenant_sku");
 
             entity.Property(p => p.Name).HasColumnName("name").HasMaxLength(150).IsRequired();
             entity.Property(p => p.Description).HasColumnName("description").HasMaxLength(1000);
@@ -132,6 +207,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.HasIndex(p => p.CategoryId).HasDatabaseName("idx_products_category");
             entity.HasIndex(p => p.SupplierId).HasDatabaseName("idx_products_supplier");
 
+            entity.HasOne(p => p.Tenant).WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Cascade);
+
             entity.HasOne(p => p.Category)
                 .WithMany(c => c.Products)
                 .HasForeignKey(p => p.CategoryId)
@@ -141,9 +218,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
                 .WithMany(s => s.Products)
                 .HasForeignKey(p => p.SupplierId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasQueryFilter(p => CurrentTenantId == null || p.TenantId == CurrentTenantId);
         });
 
-        // ---------- Inventory Stock ----------
+        // ---------- Inventory Stock (Tenant-Scoped) ----------
         modelBuilder.Entity<InventoryStock>(entity =>
         {
             entity.ToTable("inventory_stock", t =>
@@ -152,6 +231,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             });
 
             entity.Property(i => i.Id).HasColumnName("id").UseIdentityByDefaultColumn();
+            entity.Property(i => i.TenantId).HasColumnName("tenant_id").IsRequired();
             entity.Property(i => i.ProductId).HasColumnName("product_id").IsRequired();
             entity.Property(i => i.WarehouseId).HasColumnName("warehouse_id").IsRequired();
             entity.Property(i => i.Quantity).HasColumnName("quantity").HasDefaultValue(0);
@@ -159,6 +239,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.HasIndex(i => new { i.ProductId, i.WarehouseId }).IsUnique();
             entity.HasIndex(i => i.ProductId).HasDatabaseName("idx_inventory_stock_product");
             entity.HasIndex(i => i.WarehouseId).HasDatabaseName("idx_inventory_stock_warehouse");
+
+            entity.HasOne(i => i.Tenant).WithMany().HasForeignKey(i => i.TenantId).OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(i => i.Product)
                 .WithMany(p => p.InventoryStocks)
@@ -169,9 +251,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
                 .WithMany(w => w.InventoryStocks)
                 .HasForeignKey(i => i.WarehouseId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasQueryFilter(i => CurrentTenantId == null || i.TenantId == CurrentTenantId);
         });
 
-        // ---------- Stock Transactions ----------
+        // ---------- Stock Transactions (Tenant-Scoped) ----------
         modelBuilder.Entity<StockTransaction>(entity =>
         {
             entity.ToTable("stock_transactions", t =>
@@ -180,6 +264,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             });
 
             entity.Property(t => t.Id).HasColumnName("id").UseIdentityByDefaultColumn();
+            entity.Property(t => t.TenantId).HasColumnName("tenant_id").IsRequired();
             entity.Property(t => t.ProductId).HasColumnName("product_id").IsRequired();
             entity.Property(t => t.WarehouseId).HasColumnName("warehouse_id").IsRequired();
             entity.Property(t => t.ToWarehouseId).HasColumnName("to_warehouse_id");
@@ -193,6 +278,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.HasIndex(t => t.ProductId).HasDatabaseName("idx_stock_txn_product");
             entity.HasIndex(t => t.WarehouseId).HasDatabaseName("idx_stock_txn_warehouse");
             entity.HasIndex(t => t.Date).HasDatabaseName("idx_stock_txn_date");
+
+            entity.HasOne(t => t.Tenant).WithMany().HasForeignKey(t => t.TenantId).OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(t => t.Product)
                 .WithMany(p => p.StockTransactions)
@@ -213,13 +300,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
                 .WithMany(u => u.StockTransactions)
                 .HasForeignKey(t => t.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasQueryFilter(t => CurrentTenantId == null || t.TenantId == CurrentTenantId);
         });
 
-        // ---------- Purchase Orders ----------
+        // ---------- Purchase Orders (Tenant-Scoped) ----------
         modelBuilder.Entity<PurchaseOrder>(entity =>
         {
             entity.ToTable("purchase_orders");
             entity.Property(po => po.Id).HasColumnName("id").UseIdentityByDefaultColumn();
+            entity.Property(po => po.TenantId).HasColumnName("tenant_id").IsRequired();
             entity.Property(po => po.SupplierId).HasColumnName("supplier_id").IsRequired();
             entity.Property(po => po.WarehouseId).HasColumnName("warehouse_id").IsRequired();
             entity.Property(po => po.OrderDate).HasColumnName("order_date").HasColumnType("timestamptz").HasDefaultValueSql("now()");
@@ -228,6 +318,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
             entity.HasIndex(po => po.SupplierId).HasDatabaseName("idx_po_supplier");
             entity.HasIndex(po => po.Status).HasDatabaseName("idx_po_status");
+
+            entity.HasOne(po => po.Tenant).WithMany().HasForeignKey(po => po.TenantId).OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(po => po.Supplier)
                 .WithMany(s => s.PurchaseOrders)
@@ -238,9 +330,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
                 .WithMany(w => w.PurchaseOrders)
                 .HasForeignKey(po => po.WarehouseId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasQueryFilter(po => CurrentTenantId == null || po.TenantId == CurrentTenantId);
         });
 
-        // ---------- Purchase Order Items ----------
+        // ---------- Purchase Order Items (not directly tenant-scoped; cascades through PurchaseOrder) ----------
         modelBuilder.Entity<PurchaseOrderItem>(entity =>
         {
             entity.ToTable("purchase_order_items", t =>
@@ -267,5 +361,45 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
                 .HasForeignKey(poi => poi.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
+    }
+
+    /// <summary>
+    /// Automatically stamps TenantId on new ITenantScoped entities before saving.
+    /// </summary>
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var tenantId = CurrentTenantId;
+        if (tenantId.HasValue)
+        {
+            foreach (var entry in ChangeTracker.Entries<ITenantScoped>())
+            {
+                if (entry.State == EntityState.Added && entry.Entity.TenantId == Guid.Empty)
+                {
+                    entry.Entity.TenantId = tenantId.Value;
+                }
+            }
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Synchronous override for completeness (Identity sometimes calls SaveChanges).
+    /// </summary>
+    public override int SaveChanges()
+    {
+        var tenantId = CurrentTenantId;
+        if (tenantId.HasValue)
+        {
+            foreach (var entry in ChangeTracker.Entries<ITenantScoped>())
+            {
+                if (entry.State == EntityState.Added && entry.Entity.TenantId == Guid.Empty)
+                {
+                    entry.Entity.TenantId = tenantId.Value;
+                }
+            }
+        }
+
+        return base.SaveChanges();
     }
 }

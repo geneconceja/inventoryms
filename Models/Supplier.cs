@@ -1,8 +1,12 @@
 namespace inventoryms.Models;
 
-public class Supplier
+public class Supplier : ITenantScoped
 {
     public int Id { get; set; }
+
+    public Guid TenantId { get; set; }
+    public virtual Tenant Tenant { get; set; } = null!;
+
 
     public string Name { get; set; } = string.Empty;
 

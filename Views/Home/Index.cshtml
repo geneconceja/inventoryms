@@ -1,8 +1,215 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@model inventoryms.Models.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<!-- Page Header -->
+<div class="page-header mb-4">
+    <div class="page-header-left">
+        <h1 class="h3 fw-bold mb-1">Dashboard</h1>
+        <p class="text-muted mb-0">
+            Active Tenant: <strong class="text-primary">@Model.OrganizationName</strong>
+            <span class="badge badge-role badge-admin ms-2 font-mono">TENANT-SCOPED</span>
+        </p>
+    </div>
+    <div class="page-header-actions">
+        <span class="text-muted small">
+            <i class="fas fa-database me-1 text-primary"></i> Isolated PostgreSQL Scope
+        </span>
+    </div>
+</div>
+
+<!-- Tenant Isolation Callout -->
+<div class="card mb-4" style="border-left: 4px solid var(--brand-cerulean); background: #FAFDFE;">
+    <div class="card-body p-3">
+        <div class="d-flex align-items-center">
+            <div class="me-3 text-primary" style="font-size: 1.5rem;">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div>
+                <div class="fw-bold" style="color: var(--brand-deep-marine);">Multi-Tenancy Row-Level Isolation Active</div>
+                <div class="small text-muted">
+                    You are currently viewing data for <strong>@Model.OrganizationName</strong>.
+                    To switch between organizations, use the <strong>Organization Switcher</strong> dropdown in the left sidebar.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stat Cards Grid -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon primary">
+                <i class="fas fa-warehouse"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">@Model.Warehouses.Count</div>
+                <div class="stat-label">Warehouses</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon accent">
+                <i class="fas fa-tags"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">@Model.Categories.Count</div>
+                <div class="stat-label">Categories</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="fas fa-truck"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">@Model.Suppliers.Count</div>
+                <div class="stat-label">Suppliers</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="fas fa-building"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value text-truncate" style="font-size: 1.15rem; font-family: inherit;" title="@Model.OrganizationName">
+                    @Model.OrganizationName
+                </div>
+                <div class="stat-label">Active Organization</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Data Scopes -->
+<div class="row g-4 mb-4">
+    <!-- Warehouses Table -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="card-header-title">
+                    <i class="fas fa-warehouse me-2"></i>Scoped Warehouses (@Model.Warehouses.Count)
+                </span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Warehouse Name</th>
+                            <th>Location</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Warehouses.Any())
+                        {
+                            <tr>
+                                <td colspan="2" class="text-center text-muted py-4">No warehouses configured for this tenant.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var wh in Model.Warehouses)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">
+                                        <i class="fas fa-map-marker-alt text-muted me-2"></i>@wh.Name
+                                    </td>
+                                    <td class="text-muted">@wh.Location</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categories Table -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="card-header-title">
+                    <i class="fas fa-tags me-2"></i>Scoped Categories (@Model.Categories.Count)
+                </span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Categories.Any())
+                        {
+                            <tr>
+                                <td colspan="2" class="text-center text-muted py-4">No categories configured for this tenant.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var cat in Model.Categories)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@cat.Name</td>
+                                    <td class="text-muted small">@cat.Description</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Suppliers Table -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="card-header-title">
+            <i class="fas fa-truck me-2"></i>Scoped Suppliers (@Model.Suppliers.Count)
+        </span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Supplier Name</th>
+                    <th>Contact Person</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Suppliers.Any())
+                {
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">No suppliers configured for this tenant.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var s in Model.Suppliers)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@s.Name</td>
+                            <td>@(string.IsNullOrEmpty(s.ContactName) ? "—" : s.ContactName)</td>
+                            <td class="font-mono small">@(string.IsNullOrEmpty(s.Email) ? "—" : s.Email)</td>
+                            <td class="font-mono small">@(string.IsNullOrEmpty(s.Phone) ? "—" : s.Phone)</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
 </div>

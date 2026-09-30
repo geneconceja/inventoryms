@@ -11,4 +11,7 @@ public class ApplicationUser : IdentityUser<Guid>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public virtual ICollection<StockTransaction> StockTransactions { get; set; } = new List<StockTransaction>();
+
+    // Multi-tenancy: organizations this user belongs to
+    public virtual ICollection<UserTenant> UserTenants { get; set; } = new List<UserTenant>();
 }

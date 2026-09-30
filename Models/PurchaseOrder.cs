@@ -2,9 +2,13 @@ using inventoryms.Models.Enums;
 
 namespace inventoryms.Models;
 
-public class PurchaseOrder
+public class PurchaseOrder : ITenantScoped
 {
     public int Id { get; set; }
+
+    public Guid TenantId { get; set; }
+    public virtual Tenant Tenant { get; set; } = null!;
+
 
     public int SupplierId { get; set; }
     public virtual Supplier Supplier { get; set; } = null!;

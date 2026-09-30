@@ -1,6 +1,7 @@
 @using Microsoft.AspNetCore.Identity
 @inject SignInManager<inventoryms.Models.ApplicationUser> SignInManager
 @inject UserManager<inventoryms.Models.ApplicationUser> UserManager
+@inject inventoryms.Services.ITenantService TenantService
 
 @{
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
@@ -9,6 +10,9 @@
     var isManager = User.IsInRole("Manager");
     var currentUser = isAuthenticated ? await UserManager.GetUserAsync(User) : null;
     var pageTitle = ViewData["PageTitle"]?.ToString() ?? ViewData["Title"]?.ToString() ?? "Dashboard";
+    var currentTenantId = TenantService.CurrentTenantId;
+    var currentTenantName = TenantService.CurrentTenantName ?? "No Organization";
+    var userTenants = isAuthenticated ? await TenantService.GetUserTenantsAsync() : Array.Empty<inventoryms.Services.TenantDto>();
 
     string NavClass(string ctrl) => controller.Equals(ctrl, StringComparison.OrdinalIgnoreCase)
         ? "sidebar-link active" : "sidebar-link";
@@ -42,6 +46,44 @@
                     <span class="sidebar-brand-sub">Inventory Management</span>
                 </div>
             </a>
+
+            <!-- Organization Switcher -->
+            @if (userTenants.Count > 0)
+            {
+                <div class="sidebar-tenant-switcher">
+                    <div class="sidebar-section-label">Organization</div>
+                    <div class="dropdown">
+                        <button class="btn btn-tenant-switch dropdown-toggle"
+                                type="button"
+                                id="tenantSwitcherDropdown"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false">
+                            <i class="fas fa-building me-2"></i>
+                            <span class="tenant-switch-name">@currentTenantName</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-tenant" aria-labelledby="tenantSwitcherDropdown">
+                            @foreach (var tenant in userTenants)
+                            {
+                                <li>
+                                    <form asp-controller="Tenant" asp-action="Switch" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="tenantId" value="@tenant.Id" />
+                                        <button type="submit"
+                                                class="dropdown-item @(tenant.Id == currentTenantId ? "active" : "")">
+                                            <i class="fas fa-building me-2"></i>
+                                            @tenant.Name
+                                            @if (tenant.Id == currentTenantId)
+                                            {
+                                                <i class="fas fa-check ms-auto"></i>
+                                            }
+                                        </button>
+                                    </form>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            }
 
             <!-- Navigation -->
             <nav class="sidebar-nav">

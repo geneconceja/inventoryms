@@ -1,23 +1,44 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using inventoryms.Data;
 using inventoryms.Models;
+using inventoryms.Models.ViewModels;
+using inventoryms.Services;
 
 namespace inventoryms.Controllers;
 
 public class HomeController : Controller
 {
+    private readonly ApplicationDbContext _db;
+    private readonly ITenantService _tenantService;
     private readonly ILogger<HomeController> _logger;
 
-    public HomeController(ILogger<HomeController> logger)
+    public HomeController(
+        ApplicationDbContext db,
+        ITenantService tenantService,
+        ILogger<HomeController> logger)
     {
+        _db = db;
+        _tenantService = tenantService;
         _logger = logger;
     }
 
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
         ViewData["Title"] = "Dashboard";
         ViewData["PageTitle"] = "Dashboard";
-        return View();
+
+        var vm = new DashboardViewModel
+        {
+            OrganizationName = _tenantService.CurrentTenantName ?? "Default Organization",
+            TenantId = _tenantService.CurrentTenantId,
+            Warehouses = await _db.Warehouses.OrderBy(w => w.Name).ToListAsync(),
+            Categories = await _db.Categories.OrderBy(c => c.Name).ToListAsync(),
+            Suppliers = await _db.Suppliers.OrderBy(s => s.Name).ToListAsync()
+        };
+
+        return View(vm);
     }
 
     public IActionResult Privacy()
