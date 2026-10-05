@@ -30,3 +30,6 @@ Thumbs.db
 docs/
 scratch/
 
+## Node / NPM
+node_modules/
+

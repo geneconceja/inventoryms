@@ -1,0 +1,29 @@
+{
+  "name": "inventoryms",
+  "version": "1.0.0",
+  "description": "A multi-warehouse Inventory Management System built with **ASP.NET Core 9 MVC**, **Entity Framework Core**, **PostgreSQL**, and **ASP.NET Core Identity**.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "build:css": "npx @tailwindcss/cli -i ./wwwroot/css/app.css -o ./wwwroot/css/site.css --minify",
+    "watch:css": "npx @tailwindcss/cli -i ./wwwroot/css/app.css -o ./wwwroot/css/site.css --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/geneconceja/inventoryms.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/geneconceja/inventoryms/issues"
+  },
+  "homepage": "https://github.com/geneconceja/inventoryms#readme",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
+  }
+}

@@ -21,4 +21,8 @@
     </PackageReference>
   </ItemGroup>
 
+  <Target Name="TailwindBuild" BeforeTargets="Build" Condition="Exists('$(MSBuildProjectDirectory)\package.json')">
+    <Exec Command="npx @tailwindcss/cli -i ./wwwroot/css/app.css -o ./wwwroot/css/site.css" ContinueOnError="true" />
+  </Target>
+
 </Project>

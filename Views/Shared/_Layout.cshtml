@@ -24,7 +24,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] — InventoryMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/inventoryms.styles.css" asp-append-version="true" />
@@ -52,16 +51,16 @@
             {
                 <div class="sidebar-tenant-switcher">
                     <div class="sidebar-section-label">Organization</div>
-                    <div class="dropdown">
-                        <button class="btn btn-tenant-switch dropdown-toggle"
+                    <div class="relative">
+                        <button class="btn-tenant-switch"
                                 type="button"
                                 id="tenantSwitcherDropdown"
-                                data-bs-toggle="dropdown"
-                                aria-expanded="false">
+                                onclick="toggleTenantDropdown()">
                             <i class="fas fa-building me-2"></i>
                             <span class="tenant-switch-name">@currentTenantName</span>
+                            <i class="fas fa-chevron-down ms-auto" style="font-size:0.75rem; color:var(--color-brand-powder);"></i>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-tenant" aria-labelledby="tenantSwitcherDropdown">
+                        <ul class="dropdown-menu-tenant" id="tenantDropdownMenu">
                             @foreach (var tenant in userTenants)
                             {
                                 <li>
@@ -71,7 +70,7 @@
                                         <button type="submit"
                                                 class="dropdown-item @(tenant.Id == currentTenantId ? "active" : "")">
                                             <i class="fas fa-building me-2"></i>
-                                            @tenant.Name
+                                            <span class="flex-1">@tenant.Name</span>
                                             @if (tenant.Id == currentTenantId)
                                             {
                                                 <i class="fas fa-check ms-auto"></i>
@@ -149,14 +148,14 @@
                 <div class="topbar-actions">
                     @if (TempData["Success"] != null)
                     {
-                        <span class="badge bg-success-subtle text-success" style="font-size:0.78rem; padding:0.4rem 0.75rem; border-radius:20px;">
-                            <i class="fas fa-check me-1"></i>@TempData["Success"]
+                        <span class="inline-flex items-center text-xs font-semibold px-3 py-1 bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC]">
+                            <i class="fas fa-check me-1.5"></i>@TempData["Success"]
                         </span>
                     }
                     @if (TempData["Error"] != null)
                     {
-                        <span class="badge bg-danger-subtle text-danger" style="font-size:0.78rem; padding:0.4rem 0.75rem; border-radius:20px;">
-                            <i class="fas fa-exclamation-circle me-1"></i>@TempData["Error"]
+                        <span class="inline-flex items-center text-xs font-semibold px-3 py-1 bg-[#FEE2E2] text-[#B91C1C] border border-[#FECACA]">
+                            <i class="fas fa-exclamation-circle me-1.5"></i>@TempData["Error"]
                         </span>
                     }
                 </div>
@@ -178,7 +177,6 @@ else
 }
 
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
-<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>

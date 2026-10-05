@@ -21,15 +21,16 @@
         <div class="sidebar-user-avatar">@initials.ToUpper()</div>
         <div class="sidebar-user-info">
             <div class="sidebar-user-name">@(user?.FullName ?? user?.Email)</div>
-            <span class="badge-role @roleBadgeClass" style="margin-top:3px;">@role</span>
+            <div class="mt-1">
+                <span class="badge-role @roleBadgeClass">@role</span>
+            </div>
         </div>
-        <form asp-controller="Account" asp-action="Logout" method="post" class="ms-auto">
+        <form asp-controller="Account" asp-action="Logout" method="post" class="ml-auto">
             @Html.AntiForgeryToken()
             <button type="submit"
-                    class="btn-icon"
-                    style="background:transparent; border-color: rgba(255,255,255,0.12); color: var(--sidebar-text);"
+                    class="btn-icon bg-transparent border-white/20 text-[#F6F1F1] hover:bg-white/10 hover:text-white"
                     title="Sign out">
-                <i class="fas fa-right-from-bracket fa-sm"></i>
+                <i class="fas fa-right-from-bracket text-xs"></i>
             </button>
         </form>
     </div>

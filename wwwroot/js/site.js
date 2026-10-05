@@ -1,4 +1,16 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+// InventoryMS — Client Scripts
 
-// Write your JavaScript code.
+function toggleTenantDropdown() {
+    const menu = document.getElementById('tenantDropdownMenu');
+    if (menu) {
+        menu.classList.toggle('show');
+    }
+}
+
+document.addEventListener('click', function (e) {
+    const switcher = document.querySelector('.sidebar-tenant-switcher');
+    const menu = document.getElementById('tenantDropdownMenu');
+    if (switcher && menu && !switcher.contains(e.target)) {
+        menu.classList.remove('show');
+    }
+});
